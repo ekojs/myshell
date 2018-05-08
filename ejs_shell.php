@@ -21,20 +21,45 @@ if($argc > 1){
 	if('whm' === $argv[1] && 'createacct' === $argv[2]){
 		if(!empty($argv[3]) && !empty($argv[4]) && !empty($argv[5])){
 			if(!empty($argv[3]) && '-y' === $argv[3]){
-				$param[0] = $argv[4];
-				$param[1] = $argv[5];
-				$param[2] = $argv[6];
-				$param[3] = $argv[3];
+				switch($argv[4]){
+					case '-ssl':
+						$param[0] = $argv[5];
+						$param[1] = $argv[6];
+						$param[2] = $argv[7];
+						$param[3] = $argv[3];
+						break;
+					default:
+						$param[0] = $argv[4];
+						$param[1] = $argv[5];
+						$param[2] = $argv[6];
+						$param[3] = $argv[3];
+						break;
+				}
 			}else{
-				$param[0] = $argv[3];
-				$param[1] = $argv[4];
-				$param[2] = $argv[5];
+				switch($argv[3]){
+					case '-ssl':
+						$param[0] = $argv[4];
+						$param[1] = $argv[5];
+						$param[2] = $argv[6];
+						break;
+					default:
+						$param[0] = $argv[3];
+						$param[1] = $argv[4];
+						$param[2] = $argv[5];
+						break;
+				}
 			}
 			whm_create(ENDPOINT,USER,TOKEN,$argv[2],$param);
+			if((!empty($argv[3]) && '-y' === $argv[3]) && (!empty($argv[4]) && '-ssl' === $argv[4])){
+				if(!empty($argv[6])) whm_install_ssl(ENDPOINT,USER,TOKEN,'installssl',array($argv[6],'n','-y'));
+			}else if(!empty($argv[3]) && '-ssl' === $argv[3]){
+				if(!empty($argv[5])) whm_install_ssl(ENDPOINT,USER,TOKEN,'installssl',array($argv[5],'n'));
+			}
 		}else{
 			print "[!] Creating invalid account, please read this specs !!!\n";
 			help_whm('createacct');
 			print "[-] Add option '-y' without quotes to force yes every confirm.\n";
+			print "[-] Add option '-ssl' without quotes to install ssl with ip shared for this account.\n";
 			print "[-] Usage: php $argv[0] whm createacct -y broeko book.ekojunaidisalam.com ekojs@ekojunaidisalam.com \n\n";
 		}
 	}else if('whm' === $argv[1] && 'installssl' === $argv[2]){
