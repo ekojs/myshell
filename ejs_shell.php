@@ -7,8 +7,9 @@
 
 defined('AUTHOR') OR define('AUTHOR', "ejs");
 defined('HOSTNAME') OR define('HOSTNAME', "shell");
-$back = false;
-$exit = false;
+defined('EMAIL_PASSWORD') OR define('EMAIL_PASSWORD', "password");
+defined('DEFAULT_PASSWORD') OR define('DEFAULT_PASSWORD', "password");
+defined('DEFAULT_PLAN') OR define('DEFAULT_PLAN', "plan");
 
 defined('USER') OR define('USER', "user");
 defined('TOKEN') OR define('TOKEN', "tokenmu");
@@ -16,6 +17,9 @@ defined('ENDPOINT') OR define('ENDPOINT', "urlmu");
 defined('CRT') OR define('CRT', "");
 defined('CRT_KEY') OR define('CRT_KEY', "");
 defined('CA_BUNDLE') OR define('CA_BUNDLE', "");
+
+$back = false;
+$exit = false;
 
 if($argc > 1){
 	if('whm' === $argv[1] && 'createacct' === $argv[2]){
@@ -78,6 +82,23 @@ if($argc > 1){
 			help_whm('installssl');
 			print "[-] Add option '-y' without quotes to force yes every confirm.\n";
 			print "[-] Usage: php $argv[0] whm installssl -y book.ekojunaidisalam.com 104.27.185.116 \n\n";
+		}
+	}else if('mail' === $argv[1]){
+		if(!empty($argv[2]) && !empty($argv[3]) && !empty($argv[4])){
+			if("t" === $argv[4]){
+				if(!empty($argv[5]) && !empty($argv[6]) && !empty($argv[7])){
+					sendMail($argv[2],$argv[3],$argv[4],$argv[5],$argv[6],$argv[7]);
+				}else if(!empty($argv[5]) && !empty($argv[6])){
+					sendMail($argv[2],$argv[3],$argv[4],$argv[5],$argv[6]);
+				}else{
+					sendMail($argv[2],$argv[3],$argv[4],$argv[5]);
+				}
+			}else{
+				sendMail($argv[2],$argv[3],$argv[4]);
+			}
+		}else{
+			print "[!] Sending invalid email, please read this specs !!!\n";
+			help_cmd('mail');
 		}
 	}else{
 		print "|****************************************************************|\n";
@@ -145,6 +166,44 @@ if($argc > 1){
 							exit;
 						}
 						ipinfo($site);
+					}
+				}
+				break;
+			case 'mail':
+				printf("\n\n[-] You choose Mail\n");
+				help_cmd('mail');
+				while(!$back){
+					fwrite(STDOUT, "[ ".AUTHOR."@".HOSTNAME." ~] mail > ");
+					$read = trim(fgets(STDIN));
+					
+					switch($read){
+						case 'exit':
+							exit;
+							break;
+						case 'back':
+							$back = true;
+							break;
+						case 'help':
+							help_cmd('mail');
+							break;
+						default:
+							$param = explode(" ",$read);
+							if(is_array($param)){
+								if("t" === $param[2]){
+									if(count($param) == 5){
+										sendMail($param[0],$param[1],$param[2],$param[3],$param[4]);
+									}else if(count($param) == 6){
+										sendMail($param[0],$param[1],$param[2],$param[3],$param[4],$param[5]);
+									}else{
+										sendMail($param[0],$param[1],$param[2],$param[3]);
+									}
+								}else{
+									sendMail($param[0],$param[1],$param[2]);
+								}
+							}else{
+								print "[!] Parameter invalid !!!\n";
+							}
+							break;
 					}
 				}
 				break;
@@ -228,7 +287,18 @@ function banner(){
 	print "[-] Action you can take : \n";
 	print "[x] shell \t- Command Shell \n";	
 	print "[x] ipinfo \t- IP Information \n";
+	print "[x] mail \t- Send Mail \n";
 	help_whm();
+}
+
+function help_cmd($cmd='none'){
+	switch($cmd){
+		case 'mail':
+			printf("\n\n[-] Fill in recipients email, cc, bcc, subject, domain, username and responsible contact to send mail.\n");
+			printf("[-] Specs : \n\tDelimiter \t: <space> \n\tTo \t\t: Recipients email use comma delimiter for multiple recipients\n\tCC \t\t: CC email use comma delimiter for multiple cc (optional) \n\tBCC \t\t: BCC email use comma delimiter for multiple bcc (optional) \n\tSubject \t: Subject Email, use underscore '_' for space between word \n\tMessage \t: Body Message, use 't' without quotes for using template and you must supply template parameter ex: domain,username \n");
+			printf("[-] Data example, ex : to subject body tpl_param cc bcc \n\tekojs@ekojunaidisalam.com Judul_Email_yang_mau_dikirim t book.ekojunaidisalam.com,broeko \n\n");
+			break;
+	}
 }
 	
 function help_whm($cmd='none'){
@@ -244,7 +314,6 @@ function help_whm($cmd='none'){
 			printf("[-] Specs : \n\tDelimiter \t: <space> \n\tDomain \t\t: Must be subdomain of *.ekojunaidisalam.com \n\tIP \t\t: Must be IPv4 specs or 'n' without quotes for default \n");
 			break;
 		default:
-			print "[-] Action you can take : \n";
 			print "[x] whm \t- WHM Functions \n";
 			print "\t[x] createacct \t- Create Account CPANEL \n";
 			print "\t[x] installssl \t- Install SSL for CPANEL \n";
@@ -303,6 +372,69 @@ function ipinfo($site){
 		print "\n";
     }
     curl_close($curl);
+}
+
+function tplEmail($domain,$username,$email){
+	return 'Assalamu\'alaikum, selamat pagi,<br />
+Berikut kami informasikan bahwa permintaan subdomain <a href="https://'.$domain.'/">https://'.$domain.'/</a> telah kami buat :<br /><br />
++===================================+<br />
+| New Account Info                  |<br />
++===================================+<br />
+| Domain: '.$domain.'<br />
+| Ip: 104.27.184.116 (n)<br />
+| HasCgi: y<br />
+| UserName: '.$username.'<br />
+| PassWord: '.DEFAULT_PASSWORD.'<br />
+| CpanelMod: paper_lantern<br />
+| HomeRoot: /home<br />
+| Quota: 2 GB<br />
+| NameServer1: ns1.cloudflare.com<br />
+| NameServer2: ns2.cloudflare.com<br />
+| NameServer3: <br />
+| NameServer4: <br />
+| Contact Email: '.(is_array($email)?implode(",",$email):$email).'<br />
+| Package: '.DEFAULT_PLAN.'<br />
+| Feature List: default<br />
+| Language: en<br />
++===================================+<br /><br />
+
+Untuk dapat mengakses CPANEL dari subdomain tersebut silahkan akses alamat berikut : <a href="https://cpanel.ekojunaidisalam.com/">https://cpanel.ekojunaidisalam.com/</a><br />
+Silahkan segera diubah password CPANEL subdomain anda segera setelah menerima email ini.<br /><br />
+
+Terima kasih,';
+}
+
+function sendMail($to=null,$subject=null,$body=null,$tpl_param=null,$cc=null,$bcc=null){
+	if(empty($to)) print "[!] Email recipients invalid !!!\n";
+	if(empty($subject)) print "[!] Subject invalid !!!\n";
+	if(empty($body)) print "[!] Body Message invalid !!!\n";
+	
+	if(!empty($subject) && strlen($subject) > 0){
+		$subjects = str_replace("_"," ",$subject);
+	}
+	
+	if(!empty($body) && strlen($body) > 0){
+		if("t" === $body){
+			$tpl_param = explode(",",$tpl_param);
+			$bodys = tplEmail($tpl_param[0],$tpl_param[1],$to);
+		}else{
+			$bodys = str_replace("_"," ",$body);
+		}
+	}
+	
+	require_once('class.mail.php');
+	$mail = EJS_Mail::getInstance();
+	$mail->setTo($to);
+	
+	if(!empty($cc)){
+		$mail->setCC($cc);
+	}
+	
+	if(!empty($cc)){
+		$mail->setBCC($bcc);
+	}
+	
+	$mail->setSubject($subjects)->setBody($bodys)->send(EMAIL_PASSWORD);
 }
 
 function whm_list($endpoint,$user,$token,$cmd){
@@ -399,10 +531,10 @@ function whm_create($endpoint,$user,$token,$cmd,$param){
 			curl_setopt($curl, CURLOPT_POSTFIELDS, array(
 				"username" => $username,
 				"domain" => $domain,
-				"password" => "password",
+				"password" => DEFAULT_PASSWORD,
 				"contactemail" => $email,
 				"hasshell" => 0,
-				"plan" => "plan"
+				"plan" => DEFAULT_PLAN
 			));
 
 			$result = curl_exec($curl);
