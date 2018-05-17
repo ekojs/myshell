@@ -10,6 +10,7 @@ defined('HOSTNAME') OR define('HOSTNAME', "shell");
 defined('EMAIL_PASSWORD') OR define('EMAIL_PASSWORD', "password");
 defined('DEFAULT_PASSWORD') OR define('DEFAULT_PASSWORD', "password");
 defined('DEFAULT_PLAN') OR define('DEFAULT_PLAN', "plan");
+defined('DEFAULT_IP') OR define('DEFAULT_IP', "104.27.185.116");
 
 defined('USER') OR define('USER', "user");
 defined('TOKEN') OR define('TOKEN', "tokenmu");
@@ -20,6 +21,7 @@ defined('CA_BUNDLE') OR define('CA_BUNDLE', "");
 
 $back = false;
 $exit = false;
+$param = array();
 
 if($argc > 1){
 	if('whm' === $argv[1] && 'createacct' === $argv[2]){
@@ -27,29 +29,29 @@ if($argc > 1){
 			if(!empty($argv[3]) && '-y' === $argv[3]){
 				switch($argv[4]){
 					case '-ssl':
-						$param[0] = $argv[5];
-						$param[1] = $argv[6];
-						$param[2] = $argv[7];
-						$param[3] = $argv[3];
+						for($i=5;$i<$argc;$i++){
+							array_push($param,$argv[$i]);
+						}
+						array_push($param,$argv[3]);
 						break;
 					default:
-						$param[0] = $argv[4];
-						$param[1] = $argv[5];
-						$param[2] = $argv[6];
-						$param[3] = $argv[3];
+						for($i=4;$i<$argc;$i++){
+							array_push($param,$argv[$i]);
+						}
+						array_push($param,$argv[3]);
 						break;
 				}
 			}else{
 				switch($argv[3]){
 					case '-ssl':
-						$param[0] = $argv[4];
-						$param[1] = $argv[5];
-						$param[2] = $argv[6];
+						for($i=4;$i<$argc;$i++){
+							array_push($param,$argv[$i]);
+						}
 						break;
 					default:
-						$param[0] = $argv[3];
-						$param[1] = $argv[4];
-						$param[2] = $argv[5];
+						for($i=3;$i<$argc;$i++){
+							array_push($param,$argv[$i]);
+						}
 						break;
 				}
 			}
@@ -273,6 +275,26 @@ if($argc > 1){
 								}
 							}
 							break;
+						case 'verify_new_username':
+							$backwhm = false;
+							
+							while(!$backwhm){
+								fwrite(STDOUT, "[ ".AUTHOR."@".HOSTNAME." ~] whm verify_new_username > ");
+								$param = trim(fgets(STDIN));
+								
+								switch($param){
+									case 'exit':
+										exit;
+										break;
+									case 'back':
+										$backwhm = true;
+										break;
+									default:
+										printf("[+] User %s %s\n\n",$param,(whm_verify_user(ENDPOINT,USER,TOKEN,$read,$param)?'tidak ada':'sudah ada.'));
+										break;
+								}
+							}
+							break;
 						default:
 							whm_list(ENDPOINT,USER,TOKEN,$read);
 							break;
@@ -321,6 +343,7 @@ function help_whm($cmd='none'){
 			print "\t[x] listpkgs \t- List Packages in WHM \n";
 			print "\t[x] listcrts \t- List Certificates in WHM \n";
 			print "\t[x] fetch_ssl_vhosts \t- List Vhosts Certificates in WHM \n";
+			print "\t[x] verify_new_username \t- Check user in WHM \n";
 			break;
 	}
 }
@@ -381,7 +404,7 @@ Berikut kami informasikan bahwa permintaan subdomain <a href="https://'.$domain.
 | New Account Info                  |<br />
 +===================================+<br />
 | Domain: '.$domain.'<br />
-| Ip: 104.27.184.116 (n)<br />
+| Ip: '.DEFAULT_IP.' (n)<br />
 | HasCgi: y<br />
 | UserName: '.$username.'<br />
 | PassWord: '.DEFAULT_PASSWORD.'<br />
@@ -500,6 +523,15 @@ function whm_create($endpoint,$user,$token,$cmd,$param){
 	if(empty($cmd)) print "[!] Command invalid !!!\n";
 	if(!is_array($param) && count($param) != 3) print "[!] Parameter invalid !!!\n";
 	
+	if(!empty($param[3]) && $param[3] !== '-y'){
+		if(!preg_match_all('/^(?<ip>(?:(?:\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])\.){3}(?:\d|[1-9]\d|1\d\d|2[0-4]\d|25[0-5])$|n)/', $param[3], $ips, PREG_SET_ORDER, 0)){
+			print "[!] Parameter ip invalid...\n";
+		}
+		$ip = $ips[0]['ip'];
+	}else{
+		$ip = "n";
+	}
+	
 	if(strlen($param[0]) <= 5 || strlen($param[0]) >= 16){
 		print "[!] Parameter username invalid...\n";
 	}else if(!preg_match_all('/(?<domain>[a-z\-\.]+\.ekojunaidisalam\.com)/', $param[1], $domain, PREG_SET_ORDER, 0)){
@@ -510,14 +542,25 @@ function whm_create($endpoint,$user,$token,$cmd,$param){
 		$param[1] = $domain[0]['domain'];
 		$param[2] = $email[0]['email'];
 		
-		if(empty($param[3]) || '-y' !== $param[3]){
-			printf("[-] Are you sure to create this account : \n\tUsername \t: %s\n\tDomain \t\t: %s\n\tEmail \t\t: %s \n(y/n)? ",$param[0],$param[1],$param[2]);
+		if(empty($param[count($param)-1]) || '-y' !== $param[count($param)-1]){
+			printf("[-] Are you sure to create this account : \n\tUsername \t: %s\n\tDomain \t\t: %s\n\tEmail \t\t: %s\n\tIP \t\t: %s \n(y/n)? ",$param[0],$param[1],$param[2],("n" === $ip?DEFAULT_IP:$ip));
 		}
-		$y = (!empty($param[3]) && '-y' === $param[3]?'y':trim(fgets(STDIN)));
+		$y = (!empty($param[count($param)-1]) && '-y' === $param[count($param)-1]?'y':trim(fgets(STDIN)));
 		if('y' === strtolower($y)){
 			$username = $param[0];
 			$domain = $param[1];
 			$email = $param[2];
+			
+			$post_data = array(
+				"username" => $username,
+				"domain" => $domain,
+				"password" => DEFAULT_PASSWORD,
+				"contactemail" => $email,
+				"hasshell" => 0,
+				"ip" => ("n" === $ip?$ip:"y"),
+				"customip" => ("n" === $ip?DEFAULT_IP:$ip),
+				"plan" => DEFAULT_PLAN
+			);
 			
 			$curl = curl_init();
 			curl_setopt($curl, CURLOPT_SSL_VERIFYHOST,0);
@@ -528,14 +571,7 @@ function whm_create($endpoint,$user,$token,$cmd,$param){
 			curl_setopt($curl,CURLOPT_HTTPHEADER,$header);
 			curl_setopt($curl, CURLOPT_URL, $endpoint.$cmd."?api.version=1");
 			curl_setopt($curl, CURLOPT_POST, TRUE);
-			curl_setopt($curl, CURLOPT_POSTFIELDS, array(
-				"username" => $username,
-				"domain" => $domain,
-				"password" => DEFAULT_PASSWORD,
-				"contactemail" => $email,
-				"hasshell" => 0,
-				"plan" => DEFAULT_PLAN
-			));
+			curl_setopt($curl, CURLOPT_POSTFIELDS, $post_data);
 
 			$result = curl_exec($curl);
 
@@ -573,7 +609,7 @@ function whm_install_ssl($endpoint,$user,$token,$cmd,$param){
 	
 	if(!empty($domain[0]['domain']) && !empty($ips[0]['ip'])){
 		$param[0] = $domain[0]['domain'];
-		$param[1] = ("n" === $ips[0]['ip']?"104.27.185.116":$ips[0]['ip']);
+		$param[1] = ("n" === $ips[0]['ip']?DEFAULT_IP:$ips[0]['ip']);
 		
 		if(empty($param[2]) || '-y' !== $param[2]){
 			printf("[-] Are you sure to install ssl for this account : \n\tDomain \t\t: %s\n\tIP \t\t: %s \n(y/n)? ",$param[0],$param[1]);
@@ -618,6 +654,36 @@ function whm_install_ssl($endpoint,$user,$token,$cmd,$param){
 			}
 			curl_close($curl);
 		}
+	}
+}
+
+function whm_verify_user($endpoint,$user,$token,$cmd,$param){
+	if(empty($param)){
+		print "[!] Parameter invalid !!!\n";
+	}else{
+		$curl = curl_init();
+		curl_setopt($curl, CURLOPT_SSL_VERIFYHOST,0);
+		curl_setopt($curl, CURLOPT_SSL_VERIFYPEER,0);
+		curl_setopt($curl, CURLOPT_RETURNTRANSFER,1);
+
+		$header[0] = "Authorization: whm $user:$token";
+		curl_setopt($curl,CURLOPT_HTTPHEADER,$header);
+		curl_setopt($curl, CURLOPT_URL, $endpoint.$cmd."?api.version=1");
+		curl_setopt($curl, CURLOPT_POST, TRUE);
+		curl_setopt($curl, CURLOPT_POSTFIELDS, array(
+			"user" => $param
+		));
+
+		$result = curl_exec($curl);
+
+		$http_status = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+		if ($http_status != 200) {
+			print "[!] Error: " . $http_status . " returned\n";
+		} else {
+			$json = json_decode($result);
+			return $json->metadata->result;
+		}
+		curl_close($curl);
 	}
 }
 
