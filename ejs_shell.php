@@ -7,8 +7,8 @@
 
 defined('AUTHOR') OR define('AUTHOR', "ejs");
 defined('HOSTNAME') OR define('HOSTNAME', "shell");
-defined('EMAIL_PASSWORD') OR define('EMAIL_PASSWORD', "password");
-defined('DEFAULT_PASSWORD') OR define('DEFAULT_PASSWORD', "password");
+defined('EMAIL_PASSWORD') OR define('EMAIL_PASSWORD', "b64password");
+defined('DEFAULT_PASSWORD') OR define('DEFAULT_PASSWORD', "b64password");
 defined('DEFAULT_PLAN') OR define('DEFAULT_PLAN', "plan");
 defined('DEFAULT_IP') OR define('DEFAULT_IP', "104.27.185.116");
 
@@ -407,7 +407,7 @@ Berikut kami informasikan bahwa permintaan subdomain <a href="https://'.$domain.
 | Ip: '.DEFAULT_IP.' (n)<br />
 | HasCgi: y<br />
 | UserName: '.$username.'<br />
-| PassWord: '.DEFAULT_PASSWORD.'<br />
+| PassWord: '.base64_decode(DEFAULT_PASSWORD).'<br />
 | CpanelMod: paper_lantern<br />
 | HomeRoot: /home<br />
 | Quota: 2 GB<br />
@@ -554,7 +554,7 @@ function whm_create($endpoint,$user,$token,$cmd,$param){
 			$post_data = array(
 				"username" => $username,
 				"domain" => $domain,
-				"password" => DEFAULT_PASSWORD,
+				"password" => base64_decode(DEFAULT_PASSWORD),
 				"contactemail" => $email,
 				"hasshell" => 0,
 				"ip" => ("n" === $ip?$ip:"y"),
